@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Composition Basics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: dark green pages with light text. Each lesson is its own film frame (sprocket holes, frame number), spaced well apart on the index and contact sheet. Camera and review screens are a darker camera body with yellow controls and viewfinder corner marks. */
+:root{
+  --bg:#16271b;
+  --bg-2:#203528;
+  --line:#35513c;
+  --text:#eaf3dd;
+  --text-soft:#a9c1a0;
+  --ink:#17220f;
+  --ink-soft:#44563a;
+  --green:#9fcb90;
+  --yellow:#f5df7a;
+  --yellow-soft:#f8ecae;
+  --film:#0a110b;
+  --film-2:#142016;
+  --film-line:#2a3f2e;
+  --film-text:#eaf3dd;
+  --film-soft:#a9c1a0;
+  --cam:#0e1810;
+  --f-body:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  --holes:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22'%3E%3Crect x='3' y='7' width='10' height='8' rx='2.2' fill='%2316271b'/%3E%3C/svg%3E");
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--text);
+  font:400 16px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0;
+  -webkit-text-size-adjust:100%;
+}
+body.in-cam{overflow:hidden}
+h1,h2,p,ul,ol,figure{margin:0}
+h1{font:800 clamp(2rem,8.5vw,3.7rem)/1 var(--f-body);font-stretch:125%;text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
+h1.name{font-size:clamp(1.7rem,6vw,2.5rem);text-transform:none;line-height:1.08}
+h2{font:700 1.15rem/1.25 var(--f-body);font-stretch:110%}
+p{max-width:60ch}
+a{color:var(--text);text-underline-offset:3px}
+.label{font:500 11px/1.3 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-soft);font-variant-numeric:tabular-nums}
+.tag{display:inline-block;align-self:flex-start;background:var(--yellow);color:var(--ink);font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;padding:6px 9px;border-radius:3px}
+.lede{font-size:1.1rem;color:var(--text-soft)}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+
+.page{max-width:960px;margin:0 auto;padding-block:20px 80px;display:flex;flex-direction:column;gap:36px;animation:in .15s ease-out}
+.stack{display:flex;flex-direction:column;gap:14px}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:32px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.hero{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between}
+.counter{display:inline-flex;align-items:baseline;gap:10px;background:var(--film);color:var(--yellow);border:1px solid var(--line);padding:10px 16px;border-radius:6px;font:500 26px/1 var(--f-mono);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.counter small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--film-soft)}
+
+.btn,.chip{font:600 15px/1 var(--f-body);color:var(--text);background:transparent;border:2px solid var(--text);border-radius:999px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.btn{padding:12px 22px;min-height:48px}
+.chip{font-size:13px;padding:9px 14px;min-height:42px}
+.btn:hover,.chip:hover{background:var(--bg-2)}
+.btn.primary{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
+.btn.primary:hover{background:#efd24f;border-color:#efd24f}
+.chip[aria-pressed="true"]{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
+.cam .chip,.cam .btn{color:var(--film-text);border-color:var(--film-soft)}
+.cam .chip:hover,.cam .btn:hover{background:var(--film-2)}
+.cam .btn.primary,.cam .chip[aria-pressed="true"]{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+.cam .btn.primary:hover{background:#efd24f}
+
+/* film frames: index and contact sheet */
+.roll{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:28px 18px}
+@media (min-width:700px){.roll{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:44px 32px}}
+.frame{display:flex;flex-direction:column;background:var(--film);color:var(--film-text);text-decoration:none;padding:0 10px;border:1px solid var(--line);border-radius:6px;overflow:hidden;min-width:0}
+.holes{display:block;height:22px;margin:0 -10px;background:var(--holes) repeat-x center}
+.shot{position:relative;display:block;aspect-ratio:3/4;background:var(--film-2);overflow:hidden;border-radius:2px}
+.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.shot .empty{position:absolute;inset:0;display:grid;place-items:center;font:500 11px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--film-soft)}
+.edge{display:flex;gap:8px;align-items:baseline;padding:10px 0 9px;min-height:3.5em;font-size:13px;line-height:1.3;font-weight:500}
+.edge b{font:500 11px var(--f-mono);letter-spacing:.08em;color:var(--yellow)}
+.frame:hover{border-color:var(--yellow)}
+
+/* basics */
+.basics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:28px 32px}
+.item{display:flex;flex-direction:column;gap:8px;border-top:2px solid var(--green);padding-top:12px}
+.item p{color:var(--text-soft)}
+
+/* lesson */
+.lesson{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:32px;align-items:start}
+.figcol{display:flex;flex-direction:column;gap:14px;width:100%;max-width:400px}
+.fig{position:relative;aspect-ratio:3/4;width:100%;max-width:100%;background:var(--film);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.fig img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.seg{display:flex;gap:8px}
+.copy{display:flex;flex-direction:column;gap:22px;min-width:0}
+.block{display:flex;flex-direction:column;gap:6px}
+.task{background:var(--yellow-soft);color:var(--ink);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.task .label{color:var(--ink-soft)}
+.task p{max-width:none}
+.notice{background:var(--bg-2);border-radius:4px;padding:10px 12px}
+.pager{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* viewfinder marks */
+.brackets::before{content:"";position:absolute;inset:10px;pointer-events:none;z-index:3;
+  background:
+   linear-gradient(var(--yellow),var(--yellow)) top left/20px 2px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) top left/2px 20px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) top right/20px 2px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) top right/2px 20px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) bottom left/20px 2px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) bottom left/2px 20px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) bottom right/20px 2px no-repeat,
+   linear-gradient(var(--yellow),var(--yellow)) bottom right/2px 20px no-repeat}
+.hud{position:absolute;top:22px;z-index:3;font:500 11px/1 var(--f-mono);letter-spacing:.1em;color:var(--yellow);text-shadow:0 0 3px rgba(0,0,0,.85);font-variant-numeric:tabular-nums}
+.hud.tl{left:24px}
+.hud.tr{right:24px}
+
+/* grids (SVG, 300 x 400) */
+.grid{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.grid *{vector-effect:non-scaling-stroke}
+.grid .g{fill:none;stroke:var(--yellow);stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
+.grid .g2{fill:none;stroke:var(--yellow);stroke-width:1;opacity:.4}
+.grid .sp{stroke-width:2}
+.grid .hi{stroke-width:2}
+.grid .dim{fill:rgba(0,0,0,.42);stroke:none}
+.grid .hz{fill:url(#hatch);opacity:.3;stroke:none}
+.grid .dz{fill:url(#dots);opacity:.5;stroke:none}
+.ov{filter:drop-shadow(0 0 1px rgba(0,0,0,.9))}
+.ov .d{display:none}
+.dg .g,.dg .g2{stroke:var(--green)}
+.dg .sp,.dg .hi{stroke:var(--yellow)}
+.dg .dim{fill:rgba(159,203,144,.16)}
+.dg .d{fill:var(--yellow);stroke:none}
+.dg .ln{fill:none;stroke:var(--yellow);stroke-width:3}
+.shot .grid .g{stroke-width:1}
+
+/* camera + review */
+.cam{position:fixed;inset:0;z-index:5;background:var(--cam);color:var(--film-text);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  animation:in .15s ease-out}
+.bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 0;min-height:60px}
+.bar .r,.controls .r{justify-self:end}
+.bcenter{text-align:center;display:flex;flex-direction:column;gap:3px;min-width:0}
+.bname{font-weight:600;font-size:15px}
+.mode{font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--yellow);font-variant-numeric:tabular-nums}
+.hint{font-size:14px;color:var(--film-soft);text-align:center;max-width:none;padding-bottom:10px;min-height:1.5em}
+.stage{flex:1;min-height:0;display:grid;place-items:center;container-type:size}
+.vf{position:relative;width:min(100%,60vh);aspect-ratio:3/4;background:var(--film-2);overflow:hidden;border-radius:6px}
+@supports (width:1cqw){.vf{width:min(100cqw,75cqh)}}
+.vf video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.vf canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gridwrap{position:absolute;inset:0;pointer-events:none}
+.vf-msg{position:absolute;left:14px;right:14px;bottom:16px;z-index:4;background:var(--cam);border:1px solid var(--film-line);border-radius:4px;padding:10px 12px;font-size:13px;line-height:1.4;color:var(--film-soft);max-width:none}
+.controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px 0 18px}
+.libbtn{position:relative;width:52px;height:52px;border-radius:8px;border:1.5px solid var(--film-soft);background:var(--film-2);color:var(--film-text);font:500 11px var(--f-mono);overflow:hidden;padding:0;cursor:pointer}
+.libbtn img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.shutter{width:76px;height:76px;border-radius:50%;border:3px solid var(--film-text);background:var(--yellow);background-clip:content-box;padding:5px;cursor:pointer}
+.shutter:active{background-color:#e0c64a}
+.panel{display:grid;gap:12px;padding:12px 0 18px}
+.q{font-weight:600;max-width:none}
+.row2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row2 .label{color:var(--film-soft)}
+.row2 input[type=range]{flex:1;min-width:120px;accent-color:var(--yellow);height:44px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+@keyframes in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.page,.cam{animation:none}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.2" height="7" fill="#f5df7a"/></pattern>
+    <pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1" fill="#f5df7a"/></pattern>
+  </defs>
+</svg>
+
+<div id="app"></div>
+<input id="file-lib" type="file" accept="image/*" hidden>
+<input id="file-cam" type="file" accept="image/*" capture="environment" hidden>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- grid drawings (300 x 400) ---------- */
+var dot=function(x,y,r,cls){return '<circle class="'+(cls||'d')+'" cx="'+x+'" cy="'+y+'" r="'+r+'"/>'};
+var crossings=function(xs,ys){var s='';xs.forEach(function(x){ys.forEach(function(y){s+=dot(x,y,4,'g')})});return s};
+
+var patternLines='',patternDemo='',i,j;
+for(i=1;i<6;i++)patternLines+='M'+(i*50)+' 0V400';
+for(j=1;j<8;j++)patternLines+='M0 '+(j*50)+'H300';
+for(i=0;i<6;i++){for(j=0;j<8;j++){
+  if(i===3&&j===2)patternDemo+='<rect class="d" x="164" y="114" width="22" height="22"/>';
+  else patternDemo+=dot(25+i*50,25+j*50,10);
+}}
+
+var C=[
+{
+  name:'Rule of thirds',
+  short:'Put the subject on a crossing.',
+  what:'Draw two lines down and two across so the frame splits into nine boxes. The spots where the lines cross are where the eye likes to land, so that’s where the subject goes.',
+  use:'Almost anything with one clear subject. It’s the quickest fix for a photo that feels dead in the middle.',
+  task:'Take a photo of one subject and line it up with a crossing. An eye works well, or the top of a tree. If there’s a horizon, put it on the top or bottom line.',
+  check:'Is your subject sitting on a crossing?',
+  alt:'Two vertical and two horizontal lines dividing the frame into nine equal boxes, with a circle on the upper right crossing and a horizon on the lower line.',
+  flip:1,
+  svg:'<path class="g" d="M100 0V400M200 0V400M0 133.33H300M0 266.67H300"/>'+crossings([100,200],[133.33,266.67]),
+  demo:dot(200,133.33,15)+'<path class="d ln" d="M0 266.67H300"/>'
+},
+{
+  name:'Centred and symmetrical',
+  short:'Centre the subject. Match both sides.',
+  what:'Put the subject dead centre, or make the left and right halves match. It looks calm and formal because nothing pulls to one side.',
+  use:'Reflections, buildings, tunnels, someone looking straight at the camera.',
+  task:'Find something symmetrical and stand right in front of it. Line its middle up with the vertical line and keep the camera level.',
+  check:'Is it level, with both halves matching?',
+  alt:'A vertical and a horizontal line crossing at the centre, with a circle in the middle and a small block on each side.',
+  flip:1,
+  svg:'<path class="g" d="M150 0V400M0 200H300"/><circle class="g" cx="150" cy="200" r="60"/>',
+  demo:dot(150,200,30)+'<rect class="d" x="36" y="180" width="34" height="40"/><rect class="d" x="230" y="180" width="34" height="40"/>'
+},
+{
+  name:'Golden ratio grid',
+  short:'Put the main point on a crossing.',
+  what:'It looks like the thirds grid, but the lines sit a bit closer to the middle, at 38% and 62%. The crossings pull your subject toward the centre a little more.',
+  use:'When thirds feels like it pushes the subject too far to the side.',
+  task:'Shoot a subject with its main point on a crossing, then compare it with your thirds photo. See how much closer to the middle it sits.',
+  check:'Is the main point on a crossing?',
+  alt:'Two vertical and two horizontal lines placed close to the centre, with a circle on the upper left crossing and a horizon on the lower line.',
+  flip:1,
+  svg:'<path class="g" d="M114.6 0V400M185.4 0V400M0 152.8H300M0 247.2H300"/>'+crossings([114.6,185.4],[152.8,247.2]),
+  demo:dot(185.4,152.8,15)+'<path class="d ln" d="M0 247.2H300"/>'
+},
+{
+  name:'Golden spiral',
+  short:'Put the detail where the spiral tightens.',
+  what:'A curve that starts wide at the edge and winds in tighter and tighter. The eye follows it in and stops where it’s tightest, so that’s where the detail goes.',
+  use:'Scenes with a curve in them, like a staircase, a shell, a flower, or people gathered around someone.',
+  task:'Put the detail at the tight end of the spiral and let other things curve toward it. Hit Flip grid to change which corner it winds from.',
+  check:'Is the detail where the spiral tightens?',
+  alt:'A spiral curve winding inward toward the lower right, with a filled circle at its tight end and small dots along the curve.',
+  flip:4,
+  svg:'<g transform="scale(300 247.2)"><path class="g2" d="M0 1H1M.618 1V1.618M.618 1.236H1M.764 1V1.236M.618 1.146H.764"/><path class="g sp" d="M1 0A1 1 0 0 0 0 1A.618 .618 0 0 0 .618 1.618A.382 .382 0 0 0 1 1.236A.236 .236 0 0 0 .764 1A.146 .146 0 0 0 .618 1.146A.09 .09 0 0 0 .708 1.236A.056 .056 0 0 0 .764 1.18"/></g>',
+  demo:dot(221,293,9)+dot(88,72,5)+dot(54,355,5)+dot(266,372,5)
+},
+{
+  name:'Diagonals',
+  short:'Run a strong line corner to corner.',
+  what:'A line that runs from one corner toward the opposite one. Flat horizontal lines feel still. Diagonals feel like something is moving.',
+  use:'Roads, railings, stairs, long shadows, rivers.',
+  task:'Find a strong line and run it along one of the diagonals, corner to corner.',
+  check:'Does a clear line follow a diagonal?',
+  alt:'Two lines crossing from corner to corner, with a thick line along one of them ending in a circle.',
+  flip:1,
+  svg:'<path class="g" d="M0 0L300 400M300 0L0 400"/>',
+  demo:'<path class="d ln" d="M44 59L222 296"/>'+dot(236,315,9)
+},
+{
+  name:'Triangles',
+  short:'Arrange three points as a triangle.',
+  what:'Three things placed in a triangle, or one subject shaped like one, make a picture feel steady and keep the eye moving around inside it. The grid splits the frame into three areas to help you place them.',
+  use:'Still life, groups of two or three people, mountains.',
+  task:'Arrange three objects or people into a triangle, or find something triangular and fill the frame with it. Flip grid mirrors the lines.',
+  check:'Do three points, or one triangle, hold the picture together?',
+  alt:'A corner-to-corner line and two shorter lines meeting it at right angles, with three circles joined into a triangle.',
+  flip:2,
+  svg:'<path class="g" d="M0 0L300 400M300 0L108 144M0 400L192 256"/>',
+  demo:'<path class="d ln" d="M100 130L210 200L130 300Z"/>'+dot(100,130,8)+dot(210,200,8)+dot(130,300,8)
+},
+{
+  name:'Leading lines',
+  short:'Let the lines point at the subject.',
+  what:'Lines that point at your subject: a road, a fence, a river, a row of lamps. The eye runs along them and lands where they meet.',
+  use:'Small or faraway subjects that need help getting noticed.',
+  task:'Find lines that run toward each other and frame them so they meet at your subject, near the upper crossing. Flip grid moves that point to the other side.',
+  check:'Do the lines meet at your subject?',
+  alt:'Five lines running from the edges of the frame toward a single point near the upper right crossing, where a filled circle sits.',
+  flip:2,
+  svg:'<path class="g" d="M0 400L200 133.33M110 400L200 133.33M300 400L200 133.33M0 250L200 133.33M300 330L200 133.33"/>'+dot(200,133.33,5,'g'),
+  demo:dot(200,133.33,11)
+},
+{
+  name:'Frame within a frame',
+  short:'Shoot through an opening.',
+  what:'Shoot through something with a hole in it: a doorway, a window, an arch, a gap in the leaves. The subject ends up boxed in by a second frame inside your frame.',
+  use:'Anywhere there’s an opening with some shade around it.',
+  task:'Take a photo of a subject seen through an opening. It should be boxed in on at least two sides, close to the inner rectangle.',
+  check:'Is the subject boxed in on at least two sides?',
+  alt:'A rectangle inset from the edges of the frame, with the border area shaded and a circle in the middle.',
+  flip:1,
+  svg:'<path class="dim" fill-rule="evenodd" d="M0 0H300V400H0Z M50 66.67H250V333.33H50Z"/><rect class="g" x="50" y="66.67" width="200" height="266.67"/>',
+  demo:dot(150,200,28)
+},
+{
+  name:'Layers',
+  short:'Put something in all three bands.',
+  what:'Split the picture into back, middle and front. When each layer has something in it, the photo gets depth, because the eye travels from the front to the back.',
+  use:'Landscapes, streets, any scene where you can crouch down and get something close to the lens.',
+  task:'Put something close in the bottom band (the hatched one), your subject in the middle, and something far away in the top band (the dotted one).',
+  check:'Is there something in all three bands?',
+  alt:'Two horizontal lines splitting the frame into three bands: dots at the top, empty in the middle, hatching at the bottom, with a shape in each.',
+  flip:1,
+  svg:'<rect class="dz" x="0" y="0" width="300" height="160"/><rect class="hz" x="0" y="290" width="300" height="110"/><path class="g" d="M0 160H300M0 290H300"/>',
+  demo:'<rect class="d" x="20" y="330" width="110" height="70"/>'+dot(170,225,22)+'<path class="d" d="M200 120L215 90L230 120Z"/>'
+},
+{
+  name:'Patterns and repetition',
+  short:'Repeat a shape, then break it once.',
+  what:'Things that repeat make a rhythm, like windows, tiles or fence posts. The picture gets interesting when one of them breaks the pattern.',
+  use:'Buildings, fences, rows of chairs, ripples.',
+  task:'Fill the frame with a repeating pattern and include one thing that’s different: a new colour, a gap, something turned the other way. Aim for the outlined cell.',
+  check:'Can you see the repeat and the one that breaks it?',
+  alt:'A fine grid of cells, each with a circle, and one outlined cell near the upper right crossing holding a square instead.',
+  flip:1,
+  svg:'<path class="g2" d="'+patternLines+'"/><rect class="g hi" x="150" y="100" width="50" height="50"/>',
+  demo:patternDemo
+},
+{
+  name:'Negative space',
+  short:'Small subject, plain surroundings.',
+  what:'Leave most of the frame empty around a small subject. Sky, a wall, water and fog all work. The empty part ends up mattering as much as the subject.',
+  use:'A bird in the sky, one person in a big space.',
+  task:'Put a small subject inside the box and keep everything else plain. Flip grid moves the box to another corner.',
+  check:'Is most of the frame empty, with a small clear subject?',
+  alt:'A small box near the lower right with a circle inside it, and the rest of the frame hatched to mark it as empty.',
+  flip:4,
+  svg:'<path class="hz" fill-rule="evenodd" d="M0 0H300V400H0Z M160 226.67H240V306.67H160Z"/><rect class="g" x="160" y="226.67" width="80" height="80"/>',
+  demo:dot(200,266.67,12)
+}
+];
+
+var BASICS=[
+  ['Pick one subject','Know what the photo is about before you lift the camera. If you can’t say it in a few words, move closer or choose something else.'],
+  ['Look at the edges','Check all four sides of the screen before you press the button. It’s easier to move a pole or a bag now than to crop it out later.'],
+  ['Move your feet','Step sideways, crouch, go higher. Changing where you stand changes a photo more than zooming does.'],
+  ['Treat grids as help','They show you where things can go. Nobody is marking you. Once you can see the shapes without the lines, start breaking them on purpose.']
+];
+
+/* ---------- state + storage ---------- */
+var $=function(s,r){return (r||document).querySelector(s)};
+var app=$('#app'),fileLib=$('#file-lib'),fileCam=$('#file-cam');
+var state={photos:{},orient:{},tab:{},pending:null,rv:null,target:1,facing:'environment',live:false,cam:null,cleanup:null,notice:'',sheetGrids:true,confirmClear:false};
+var pad=function(n){return String(n).padStart(2,'0')};
+var taken=function(){var t=0;for(var n=1;n<=C.length;n++)if(state.photos[n])t++;return t};
+var firstMissing=function(){for(var n=1;n<=C.length;n++)if(!state.photos[n])return n;return 1};
+
+var DB={
+  db:null,
+  open:function(){
+    var self=this;
+    if(self.db)return Promise.resolve(self.db);
+    return new Promise(function(res,rej){
+      var r=indexedDB.open('composition-basics',1);
+      r.onupgradeneeded=function(){r.result.createObjectStore('photos',{keyPath:'n'})};
+      r.onsuccess=function(){self.db=r.result;res(r.result)};
+      r.onerror=function(){rej(r.error)};
+    });
+  },
+  run:function(mode,fn){
+    return this.open().then(function(db){
+      return new Promise(function(res,rej){
+        var q=fn(db.transaction('photos',mode).objectStore('photos'));
+        q.onsuccess=function(){res(q.result)};
+        q.onerror=function(){rej(q.error)};
+      });
+    }).catch(function(){return null});
+  },
+  all:function(){return this.run('readonly',function(s){return s.getAll()}).then(function(r){return r||[]})},
+  put:function(rec){return this.run('readwrite',function(s){return s.put(rec)})},
+  clear:function(){return this.run('readwrite',function(s){return s.clear()})}
+};
+
+/* ---------- grid svg ---------- */
+function gridSVG(c,o,mode){
+  var t='';
+  if(o&1)t+='translate(300 0) scale(-1 1) ';
+  if(o&2)t+='translate(0 400) scale(1 -1)';
+  t=t.trim();
+  return '<svg class="grid '+mode+'" viewBox="0 0 300 400" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g'+(t?' transform="'+t+'"':'')+'>'+c.svg+(mode==='dg'?c.demo:'')+'</g></svg>';
+}
+function hud(n){return '<span class="hud tl">'+pad(n)+'/'+C.length+'</span><span class="hud tr">3:4</span>'}
+
+/* one frame of film, used by the index and the contact sheet */
+function tile(n,mode){
+  var c=C[n-1],ph=state.photos[n],o=state.orient[n]||0,inner;
+  if(ph)inner='<img src="'+ph.url+'" alt="Your photo for '+c.name+'">'+((mode==='sheet'&&state.sheetGrids)?gridSVG(c,o,'ov'):'');
+  else inner=mode==='sheet'?'<span class="empty">Empty</span>':gridSVG(c,0,'dg');
+  return '<a class="frame" href="#lesson-'+n+'"><span class="holes"></span><span class="shot">'+inner+'</span><span class="edge"><b>'+pad(n)+'</b><span>'+c.name+'</span></span><span class="holes"></span></a>';
+}
+
+/* ---------- views ---------- */
+function home(){
+  var t=taken(),all=t===C.length,next=firstMissing();
+  var label=t===0?'Start with the basics':(all?'Open the contact sheet':'Continue with lesson '+next);
+  var href=t===0?'#basics':(all?'#sheet':'#lesson-'+next);
+  var tiles='';
+  for(var n=1;n<=C.length;n++)tiles+=tile(n,'index');
+  app.innerHTML='<div class="page">'+
+    '<header class="hero"><div class="stack"><span class="tag">Roll of '+C.length+'</span><h1>Composition</h1>'+
+    '<p class="lede">Eleven short lessons on framing a photo. Read one, then go shoot it. Photos stay on this device.</p></div>'+
+    '<div class="counter"><span>'+pad(t)+'/'+C.length+'</span><small>shot</small></div></header>'+
+    '<div class="actions"><a class="btn primary" href="'+href+'">'+label+'</a>'+(t?'<a class="btn" href="#basics">Basics</a>':'')+(t?'<a class="btn" href="#sheet">Contact sheet</a>':'')+'</div>'+
+    '<div class="roll">'+tiles+'</div></div>';
+}
+
+function basics(){
+  var items=BASICS.map(function(b){return '<div class="item"><h2>'+b[0]+'</h2><p>'+b[1]+'</p></div>'}).join('');
+  app.innerHTML='<div class="page">'+
+    '<nav class="nav"><a href="#">Index</a><span class="label">Basics</span></nav>'+
+    '<header class="stack"><h1>Basics</h1><p class="lede">Four things to remember before the first photo.</p></header>'+
+    '<div class="basics">'+items+'</div>'+
+    '<section class="stack"><div class="label">How the lessons work</div>'+
+    '<p>There are eleven lessons. Each one shows a grid and gives you a job. Open the camera, line up the shot with the grid on screen, and take one photo. Answer the question about it, then keep it or retake it. When all eleven are in, they show up together on a contact sheet.</p></section>'+
+    '<div class="actions"><a class="btn primary" href="#lesson-1">Start lesson 1</a></div></div>';
+}
+
+function lesson(n){
+  var c=C[n-1],ph=state.photos[n],o=state.orient[n]||0;
+  var tab=ph?(state.tab[n]||'photo'):'guide';
+  var fig=(tab==='photo'&&ph)
+    ?'<div class="fig brackets"><img src="'+ph.url+'" alt="Your photo for '+c.name+'">'+gridSVG(c,o,'ov')+hud(n)+'</div>'
+    :'<div class="fig brackets" role="img" aria-label="'+c.alt+'">'+gridSVG(c,o,'dg')+hud(n)+'</div>';
+  var seg=ph?'<div class="seg"><button class="chip" data-act="tab" data-n="'+n+'" data-tab="guide" aria-pressed="'+(tab==='guide')+'">Guide</button><button class="chip" data-act="tab" data-n="'+n+'" data-tab="photo" aria-pressed="'+(tab==='photo')+'">Your photo</button></div>':'';
+  var nextHref=n<C.length?'#lesson-'+(n+1):'#sheet';
+  var nextLabel=n<C.length?'Next lesson':'Contact sheet';
+  var actions=ph
+    ?'<a class="btn primary" href="'+nextHref+'">'+nextLabel+'</a><a class="btn" href="#shoot-'+n+'">Retake</a><button class="btn" data-act="lib" data-n="'+n+'">Upload another</button>'
+    :'<a class="btn primary" href="#shoot-'+n+'">Take photo</a><button class="btn" data-act="lib" data-n="'+n+'">Upload from library</button>';
+  var pager='<nav class="pager">'+(n>1?'<a href="#lesson-'+(n-1)+'">Previous lesson</a>':'<a href="#basics">Basics</a>')+((!ph&&n<C.length)?'<a href="#lesson-'+(n+1)+'">Skip to next lesson</a>':'<span></span>')+'</nav>';
+  var notice=state.notice?'<p class="notice">'+state.notice+'</p>':'';
+  state.notice='';
+  app.innerHTML='<div class="page">'+
+    '<nav class="nav"><a href="#">Index</a><span class="label">Frame '+pad(n)+' of '+C.length+'</span></nav>'+
+    '<div class="lesson"><div class="figcol">'+fig+seg+'</div>'+
+    '<div class="copy"><h1 class="name">'+c.name+'</h1>'+
+    '<div class="block"><div class="label">What it is</div><p>'+c.what+'</p></div>'+
+    '<div class="block"><div class="label">Good for</div><p>'+c.use+'</p></div>'+
+    '<div class="task"><div class="label">Your task</div><p>'+c.task+'</p></div>'+
+    notice+'<div class="actions">'+actions+'</div></div></div>'+pager+'</div>';
+}
+
+function shoot(n){
+  var c=C[n-1],o=state.orient[n]||0,ph=state.photos[n];
+  document.body.classList.add('in-cam');
+  var hint=state.notice||c.short;
+  state.notice='';
+  app.innerHTML='<div class="cam">'+
+    '<div class="bar"><div><a class="chip" href="#lesson-'+n+'">Close</a></div><div class="bcenter"><div class="bname">'+c.name+'</div><div class="mode">Photo · '+pad(n)+'/'+C.length+'</div></div><div class="r"><button class="chip" id="switch" data-act="switch" hidden>Camera</button></div></div>'+
+    '<p class="hint">'+hint+'</p>'+
+    '<div class="stage"><div class="vf brackets" id="vf"><video id="video" playsinline muted autoplay hidden></video><div id="gridwrap">'+gridSVG(c,o,'ov')+'</div><span class="hud tl">3:4</span>'+
+    '<p class="vf-msg" id="msg" hidden>Live view doesn’t work in this window. Tap the shutter to open your phone’s camera, and the photo will land on the grid.</p></div></div>'+
+    '<div class="controls"><div><button class="libbtn" data-act="lib" data-n="'+n+'" aria-label="Choose from library">'+(ph?'<img src="'+ph.url+'" alt="">':'Library')+'</button></div>'+
+    '<button class="shutter" data-act="shutter" data-n="'+n+'" aria-label="Take photo"></button>'+
+    '<div class="r">'+(c.flip>1?'<button class="chip" data-act="flipgrid" data-n="'+n+'">Flip grid</button>':'')+'</div></div></div>';
+
+  var video=$('#video'),msg=$('#msg'),stream=null,dead=false;
+  function stop(){if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}}
+  function off(){state.live=false;video.hidden=true;msg.hidden=false}
+  function start(){
+    stop();
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){off();return}
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:state.facing},width:{ideal:2048},height:{ideal:2048}},audio:false}).then(function(s){
+      if(dead){s.getTracks().forEach(function(t){t.stop()});return}
+      stream=s;video.srcObject=s;video.muted=true;
+      var p=video.play();if(p&&p.catch)p.catch(function(){});
+      video.hidden=false;msg.hidden=true;state.live=true;
+      if(navigator.mediaDevices.enumerateDevices){
+        navigator.mediaDevices.enumerateDevices().then(function(d){
+          var cams=d.filter(function(x){return x.kind==='videoinput'}).length;
+          var sw=$('#switch');if(sw&&!dead)sw.hidden=cams<2;
+        }).catch(function(){});
+      }
+    }).catch(function(){if(!dead)off()});
+  }
+  state.cam={video:video,restart:start};
+  state.cleanup=function(){dead=true;stop();state.live=false;state.cam=null};
+  start();
+}
+
+function captureFrame(n){
+  var v=state.cam&&state.cam.video;
+  if(!v||!v.videoWidth)return;
+  var vw=v.videoWidth,vh=v.videoHeight,ratio=3/4,cw,ch;
+  if(vw/vh>ratio){ch=vh;cw=vh*ratio}else{cw=vw;ch=vw/ratio}
+  var k=Math.min(1,2400/Math.max(cw,ch));
+  var cv=document.createElement('canvas');
+  cv.width=Math.round(cw*k);cv.height=Math.round(ch*k);
+  cv.getContext('2d').drawImage(v,(vw-cw)/2,(vh-ch)/2,cw,ch,0,0,cv.width,cv.height);
+  state.pending={n:n,src:cv};
+  location.hash='review-'+n;
+}
+
+function loadFile(file){
+  var decode;
+  if(window.createImageBitmap){
+    decode=createImageBitmap(file,{imageOrientation:'from-image'}).catch(function(){return viaImage(file)});
+  }else{decode=viaImage(file)}
+  return decode.then(function(bmp){
+    var iw=bmp.width||bmp.naturalWidth,ih=bmp.height||bmp.naturalHeight;
+    if(!iw||!ih)throw new Error('empty');
+    var k=Math.min(1,2400/Math.max(iw,ih));
+    var cv=document.createElement('canvas');
+    cv.width=Math.round(iw*k);cv.height=Math.round(ih*k);
+    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+    if(bmp.close)bmp.close();
+    return cv;
+  });
+}
+function viaImage(file){
+  return new Promise(function(res,rej){
+    var u=URL.createObjectURL(file),im=new Image();
+    im.onload=function(){URL.revokeObjectURL(u);res(im)};
+    im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('decode'))};
+    im.src=u;
+  });
+}
+
+function review(n){
+  var p=state.pending;
+  if(!p||p.n!==n){location.hash='lesson-'+n;return}
+  var c=C[n-1],o=state.orient[n]||0,src=p.src,sw=src.width,sh=src.height;
+  document.body.classList.add('in-cam');
+  app.innerHTML='<div class="cam">'+
+    '<div class="bar"><div></div><div class="bcenter"><div class="bname">'+c.name+'</div><div class="mode">Review · '+pad(n)+'/'+C.length+'</div></div><div></div></div>'+
+    '<p class="hint">Drag the photo to line it up with the grid.</p>'+
+    '<div class="stage"><div class="vf brackets" id="vf"><canvas id="cv"></canvas><div id="gridwrap">'+gridSVG(c,o,'ov')+'</div><span class="hud tl">3:4</span></div></div>'+
+    '<div class="panel"><p class="q">'+c.check+'</p>'+
+    '<div class="row2"><label class="label" for="zoom">Zoom</label><input id="zoom" type="range" min="1" max="4" step="0.01" value="1">'+
+    '<button class="chip" data-act="rgrid" aria-pressed="true">Grid</button>'+
+    (c.flip>1?'<button class="chip" data-act="flipgrid" data-n="'+n+'">Flip grid</button>':'')+'</div>'+
+    '<div class="btns"><a class="btn" href="#shoot-'+n+'">Retake</a><button class="btn primary" data-act="keep" data-n="'+n+'">Keep</button></div></div></div>';
+
+  var vf=$('#vf'),cv=$('#cv'),ctx=cv.getContext('2d');
+  var rv={z:1,cx:sw/2,cy:sh/2};
+  state.rv=rv;
+  function scale(){return Math.max(cv.width/sw,cv.height/sh)*rv.z}
+  function clamp(){
+    var s=scale(),hw=cv.width/(2*s),hh=cv.height/(2*s);
+    rv.cx=Math.min(sw-hw,Math.max(hw,rv.cx));
+    rv.cy=Math.min(sh-hh,Math.max(hh,rv.cy));
+  }
+  function draw(){
+    clamp();
+    var s=scale();
+    ctx.fillStyle='#000';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(src,cv.width/2-rv.cx*s,cv.height/2-rv.cy*s,sw*s,sh*s);
+  }
+  function size(){
+    var r=vf.getBoundingClientRect(),d=window.devicePixelRatio||1;
+    cv.width=Math.max(1,Math.round(r.width*d));
+    cv.height=Math.max(1,Math.round(r.height*d));
+    draw();
+  }
+  function setZoom(z){rv.z=Math.min(4,Math.max(1,z));$('#zoom').value=rv.z;draw()}
+  var ro=null;
+  if(window.ResizeObserver){ro=new ResizeObserver(size);ro.observe(vf)}else{size()}
+  state.cleanup=function(){if(ro)ro.disconnect()};
+
+  var ptrs=new Map(),base=null;
+  function dist(){var a=Array.from(ptrs.values());return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}
+  cv.addEventListener('pointerdown',function(e){
+    cv.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===2)base={d:dist(),z:rv.z};
+  });
+  cv.addEventListener('pointermove',function(e){
+    var q=ptrs.get(e.pointerId);if(!q)return;
+    var dx=e.clientX-q.x,dy=e.clientY-q.y;
+    q.x=e.clientX;q.y=e.clientY;
+    if(ptrs.size===1){
+      var s=scale(),d=window.devicePixelRatio||1;
+      rv.cx-=dx*d/s;rv.cy-=dy*d/s;draw();
+    }else if(ptrs.size===2&&base){setZoom(base.z*dist()/base.d)}
+  });
+  function up(e){ptrs.delete(e.pointerId);base=null}
+  cv.addEventListener('pointerup',up);
+  cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',function(e){e.preventDefault();setZoom(rv.z*(e.deltaY<0?1.08:1/1.08))},{passive:false});
+  $('#zoom').addEventListener('input',function(e){setZoom(+e.target.value)});
+}
+
+function keep(n){
+  var p=state.pending,rv=state.rv;
+  if(!p||!rv)return;
+  var src=p.src,sw=src.width,sh=src.height,W=1200,H=1600;
+  var out=document.createElement('canvas');out.width=W;out.height=H;
+  var ctx=out.getContext('2d'),s=Math.max(W/sw,H/sh)*rv.z;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  ctx.drawImage(src,W/2-rv.cx*s,H/2-rv.cy*s,sw*s,sh*s);
+  out.toBlob(function(blob){
+    if(!blob){state.notice='The photo could not be saved. Try again.';location.hash='lesson-'+n;return}
+    var old=state.photos[n];if(old)URL.revokeObjectURL(old.url);
+    state.photos[n]={blob:blob,url:URL.createObjectURL(blob)};
+    state.tab[n]='photo';
+    DB.put({n:n,blob:blob,orient:state.orient[n]||0});
+    state.pending=null;state.rv=null;
+    if(taken()===C.length)location.hash='sheet';
+    else if(n<C.length)location.hash='lesson-'+(n+1);
+    else location.hash='';
+  },'image/jpeg',0.9);
+}
+
+function sheet(){
+  var t=taken(),tiles='';
+  for(var n=1;n<=C.length;n++)tiles+=tile(n,'sheet');
+  var clear=state.confirmClear
+    ?'<span class="label">Delete all photos from this device?</span><button class="chip" data-act="clear-yes">Delete</button><button class="chip" data-act="clear-no">Cancel</button>'
+    :(t?'<button class="chip" data-act="clear">Delete all photos</button>':'');
+  app.innerHTML='<div class="page">'+
+    '<nav class="nav"><a href="#">Index</a><span class="label">Contact sheet</span></nav>'+
+    '<header class="hero"><div class="stack"><h1>Contact sheet</h1><p class="lede">'+(t===C.length?'All '+C.length+' shot.':t+' of '+C.length+' shot.')+'</p></div>'+
+    '<div class="counter"><span>'+pad(t)+'/'+C.length+'</span><small>shot</small></div></header>'+
+    '<div class="actions"><button class="chip" data-act="sheet-grids" aria-pressed="'+state.sheetGrids+'">Show grids</button>'+clear+'</div>'+
+    '<div class="roll">'+tiles+'</div></div>';
+}
+
+/* ---------- router ---------- */
+function route(){
+  if(state.cleanup){state.cleanup();state.cleanup=null}
+  document.body.classList.remove('in-cam');
+  var h=location.hash.replace(/^#/,''),m;
+  if(h!=='sheet')state.confirmClear=false;
+  if(h==='basics'){basics();window.scrollTo(0,0);return}
+  if(h==='sheet'){sheet();window.scrollTo(0,0);return}
+  m=h.match(/^(lesson|shoot|review)-(\d+)$/);
+  if(m){
+    var n=+m[2];
+    if(n>=1&&n<=C.length){
+      if(m[1]==='lesson'){lesson(n);window.scrollTo(0,0)}
+      else if(m[1]==='shoot')shoot(n);
+      else review(n);
+      return;
+    }
+  }
+  home();window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+
+/* ---------- actions ---------- */
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');
+  if(!b)return;
+  var act=b.dataset.act,n=+b.dataset.n||0,c=C[n-1],o;
+  if(act==='lib'){state.target=n;fileLib.value='';fileLib.click()}
+  else if(act==='shutter'){
+    if(state.live&&state.cam)captureFrame(n);
+    else{state.target=n;fileCam.value='';fileCam.click()}
+  }
+  else if(act==='flipgrid'&&c){
+    o=state.orient[n]||0;
+    o=c.flip===2?(o^1):((o+1)%4);
+    state.orient[n]=o;
+    $('#gridwrap').innerHTML=gridSVG(c,o,'ov');
+  }
+  else if(act==='switch'){
+    state.facing=state.facing==='environment'?'user':'environment';
+    if(state.cam)state.cam.restart();
+  }
+  else if(act==='tab'){state.tab[n]=b.dataset.tab;lesson(n)}
+  else if(act==='rgrid'){
+    var on=b.getAttribute('aria-pressed')!=='true';
+    b.setAttribute('aria-pressed',String(on));
+    $('#gridwrap').hidden=!on;
+  }
+  else if(act==='keep')keep(n);
+  else if(act==='sheet-grids'){state.sheetGrids=!state.sheetGrids;sheet()}
+  else if(act==='clear'){state.confirmClear=true;sheet()}
+  else if(act==='clear-no'){state.confirmClear=false;sheet()}
+  else if(act==='clear-yes'){
+    Object.keys(state.photos).forEach(function(k){URL.revokeObjectURL(state.photos[k].url)});
+    state.photos={};state.orient={};state.tab={};state.confirmClear=false;
+    DB.clear();sheet();
+  }
+});
+
+function onFile(e){
+  var f=e.target.files&&e.target.files[0];
+  if(!f)return;
+  var n=state.target;
+  loadFile(f).then(function(src){
+    state.pending={n:n,src:src};
+    if(location.hash==='#review-'+n)route();else location.hash='review-'+n;
+  }).catch(function(){
+    state.notice='That file couldn’t be read as an image.';
+    if(location.hash==='#shoot-'+n||location.hash==='#lesson-'+n)route();
+    else location.hash='lesson-'+n;
+  });
+}
+fileLib.addEventListener('change',onFile);
+fileCam.addEventListener('change',onFile);
+
+/* ---------- start ---------- */
+function applyRecords(recs){
+  recs.forEach(function(r){
+    if(!r||!r.blob||state.photos[r.n])return;
+    state.photos[r.n]={blob:r.blob,url:URL.createObjectURL(r.blob)};
+    state.orient[r.n]=r.orient||0;
+  });
+}
+var late=false;
+var timeout=new Promise(function(res){setTimeout(function(){late=true;res(null)},1500)});
+var loading=DB.all();
+Promise.race([loading,timeout]).then(function(recs){
+  if(recs)applyRecords(recs);
+  route();
+  if(late){
+    loading.then(function(r){
+      applyRecords(r);
+      if(!/^#(shoot|review)-/.test(location.hash))route();
+    });
+  }
+});
+})();
+</script>
+
+</body></html>
